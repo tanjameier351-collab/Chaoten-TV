@@ -2,49 +2,93 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CHAOTEN-TV | 24/7 UNFILTERED</title>
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    h1 { margin: 20px; }
-    video {
-      width: 100%;
-      height: 80vh;
-      object-fit: contain;
-      background: black;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHAOTEN-TV | 24/7 UNFILTERED</title>
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  h1 { margin: 20px; }
+  video {
+    width: 100%;
+    height: 80vh;
+    object-fit: contain;
+    background: black;
+  }
+</style>
 </head>
 <body>
-  <h1>CHAOTEN-TV | 24/7 UNFILTERED</h1>
-  <video id="player" controls autoplay muted playsinline></video>
+<h1>CHAOTEN-TV | 24/7 UNFILTERED</h1>
+<video id="player" autoplay muted playsinline controls></video>
 
-  <script>
-    const videos = [
-          "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/Marc.-.Narben.machen.dich.harter.-.Marc.1080p.mp4"
-    ];
-    let current = 0;
-    const player = document.getElementById("player");
+<script>
+const videos = [
+  {
+    url: "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/Marc.-.Narben.machen.dich.harter.-.Marc.1080p.mp4",
+    duration: 240
+  }
+];
 
-    function playVideo() {
-      player.src = videos[current];
-      player.load();
-      player.play().catch(() => {});
+// Gemeinsamer Sendestart: 13.11.2026, 00:00 UTC
+const sendestart = Date.UTC(2026, 10, 13, 0, 0, 0);
+const player = document.getElementById("player");
+
+let currentVideo = -1;
+let switching = false;
+
+function getPosition() {
+  const total = videos.reduce((sum, v) => sum + v.duration, 0);
+  let elapsed = Math.max(0, (Date.now() - sendestart) / 1000) % total;
+
+  for (let i = 0; i < videos.length; i++) {
+    if (elapsed < videos[i].duration) {
+      return { index: i, seconds: elapsed };
+    }
+    elapsed -= videos[i].duration;
+  }
+  return { index: 0, seconds: 0 };
+}
+
+function synchronize() {
+  const position = getPosition();
+  const video = videos[position.index];
+
+  if (currentVideo !== position.index) {
+    currentVideo = position.index;
+    switching = true;
+    player.src = video.url;
+    player.load();
+  }
+
+  if (player.readyState >= 1) {
+    const target = Math.min(
+      position.seconds,
+      Math.max(0, (player.duration || video.duration) - 0.2)
+    );
+
+    if (Math.abs(player.currentTime - target) > 2) {
+      player.currentTime = target;
     }
 
-    player.addEventListener("ended", () => {
-      current = (current + 1) % videos.length;
-      playVideo();
-    });
+    switching = false;
 
-    playVideo();
-  </script>
+    if (player.paused) {
+      player.play().catch(() => {});
+    }
+  }
+}
+
+player.addEventListener("loadedmetadata", synchronize);
+player.addEventListener("ended", synchronize);
+
+setInterval(synchronize, 3000);
+synchronize();
+</script>
 </body>
 </html>
+
