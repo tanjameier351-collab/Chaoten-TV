@@ -4,50 +4,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CHAOTEN-TV Soundwave Test</title>
-<style>
-* { box-sizing: border-box; }
+<title>CHAOTEN-TV | Neon Energy</title>
 
-html,body {
-  margin:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  background:#02030b;
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #02030b;
 }
 
 .screen {
-  position:relative;
-  width:100vw;
-  height:100vh;
-  overflow:hidden;
-  background:#02030b;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #02030b;
 }
 
 #visualizer {
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 #player {
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  background:transparent;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
 }
 
 #status {
-  position:absolute;
-  bottom:8px;
-  left:10px;
-  color:#aab4d8;
-  font:11px Arial,sans-serif;
-  opacity:.65;
-  pointer-events:none;
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  color: #aab4d8;
+  font: 11px Arial, sans-serif;
+  opacity: .6;
+  pointer-events: none;
 }
 </style>
 </head>
@@ -56,10 +59,12 @@ html,body {
 <div class="screen">
   <canvas id="visualizer"></canvas>
   <video id="player" autoplay muted playsinline controls></video>
-  <div id="status">Soundwave-Test</div>
+  <div id="status">Neon Energy Test</div>
 </div>
 
 <script>
+/* MARCS SECHS MUSIKVIDEOS */
+
 const base =
 "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/";
 
@@ -72,53 +77,57 @@ const videos = [
   ["MARC.BREAK.THE.STATIC.Epic.Festival.EDM.Experience.Official.Music.Video.-.Marc.1080p.mp4",231]
 ];
 
-const player=document.getElementById("player");
-const canvas=document.getElementById("visualizer");
-const ctx=canvas.getContext("2d");
-const status=document.getElementById("status");
+const player = document.getElementById("player");
+const canvas = document.getElementById("visualizer");
+const ctx = canvas.getContext("2d");
 
-const sendestart=Date.UTC(2026,10,13,0,0,0);
-const total=videos.reduce((sum,v)=>sum+v[1],0);
+const sendestart = Date.UTC(2026,10,13,0,0,0);
+const total = videos.reduce((sum,v) => sum+v[1],0);
 
-let currentIndex=-1;
+let currentIndex = -1;
 
-function broadcastPosition(){
-  let seconds=
+/* ENDLOS-SENDEPLAN */
+
+function broadcastPosition() {
+  let seconds =
     Math.max(0,(Date.now()-sendestart)/1000)%total;
 
-  for(let i=0;i<videos.length;i++){
-    if(seconds<videos[i][1]){
+  for(let i=0;i<videos.length;i++) {
+    if(seconds < videos[i][1]) {
       return {index:i,seconds};
     }
-    seconds-=videos[i][1];
+    seconds -= videos[i][1];
   }
+
   return {index:0,seconds:0};
 }
 
-function sync(){
-  const pos=broadcastPosition();
+function sync() {
+  const pos = broadcastPosition();
 
-  if(currentIndex!==pos.index){
-    currentIndex=pos.index;
-    player.src=base+videos[pos.index][0];
+  if(currentIndex !== pos.index) {
+    currentIndex = pos.index;
+    player.src = base+videos[pos.index][0];
     player.load();
   }
 
-  if(player.readyState>=1){
-    const duration=Number.isFinite(player.duration)
+  if(player.readyState >= 1) {
+    const duration = Number.isFinite(player.duration)
       ? player.duration
       : videos[pos.index][1];
 
-    const target=Math.min(
-      pos.seconds,Math.max(0,duration-0.2)
+    const target = Math.min(
+      pos.seconds,
+      Math.max(0,duration-0.2)
     );
 
-    if(Math.abs(player.currentTime-target)>2){
-      try { player.currentTime=target; }
-      catch(e){}
+    if(Math.abs(player.currentTime-target)>2) {
+      try {
+        player.currentTime = target;
+      } catch(e) {}
     }
 
-    if(player.paused){
+    if(player.paused) {
       player.play().catch(()=>{});
     }
   }
@@ -126,124 +135,171 @@ function sync(){
 
 player.addEventListener("loadedmetadata",sync);
 player.addEventListener("ended",sync);
+
 setInterval(sync,3000);
 sync();
 
-/* Bildschirmgroesse */
-function resize(){
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  canvas.width=Math.round(innerWidth*dpr);
-  canvas.height=Math.round(innerHeight*dpr);
+/* CANVAS ANPASSEN */
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio||1,2);
+
+  canvas.width = Math.round(innerWidth*dpr);
+  canvas.height = Math.round(innerHeight*dpr);
+
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 
 window.addEventListener("resize",resize);
 resize();
 
-/* CLUB-ENERGIEFAECHER */
-function draw(time){
-  const w=innerWidth;
-  const h=innerHeight;
-  const t=time*0.001;
+/* BREITE NEON-ENERGIEBAENDER */
+
+const palettes = [
+  ["#00f5ff","#008cff","#734cff"],
+  ["#168bff","#6845ff","#d02bff"],
+  ["#754cff","#dd37ff","#ff43bd"]
+];
+
+function ribbon(side,layer,t,energy,w,h) {
+  const direction = side===0 ? 1 : -1;
+  const origin = side===0 ? 0 : w;
+
+  const reach = w*0.47;
+  const center = h*0.5;
+
+  const thickness = 38+layer*12+energy*34;
+  const points = 100;
+
+  const upper = [];
+  const lower = [];
+
+  for(let i=0;i<=points;i++) {
+    const p = i/points;
+    const x = origin+direction*p*reach;
+
+    const envelope = Math.sin(Math.PI*p);
+
+    const wave =
+      Math.sin(p*11-t*(1.4+layer*.22)+layer*1.8)
+      *(65+energy*90);
+
+    const detail =
+      Math.sin(p*23+t*1.7+layer)
+      *(12+energy*20);
+
+    const spread =
+      (layer-1)*h*.17*Math.sin(p*Math.PI*.85);
+
+    const y = center+
+      spread+
+      (wave+detail)*envelope;
+
+    const half =
+      thickness*(.35+.65*envelope)*.5;
+
+    upper.push([x,y-half]);
+    lower.push([x,y+half]);
+  }
+
+  ctx.beginPath();
+
+  upper.forEach((p,i)=>{
+    if(i===0) ctx.moveTo(p[0],p[1]);
+    else ctx.lineTo(p[0],p[1]);
+  });
+
+  lower.reverse().forEach(p=>{
+    ctx.lineTo(p[0],p[1]);
+  });
+
+  ctx.closePath();
+
+  const colors = palettes[layer];
+
+  const grad = ctx.createLinearGradient(
+    origin,center-h*.35,
+    origin,center+h*.35
+  );
+
+  grad.addColorStop(0,colors[0]);
+  grad.addColorStop(.5,colors[1]);
+  grad.addColorStop(1,colors[2]);
+
+  ctx.save();
+
+  /* Transparenter aeusserer Lichtschein */
+  ctx.globalAlpha = .22;
+  ctx.shadowBlur = 55;
+  ctx.shadowColor = colors[1];
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* Breiter leuchtender Bandkoerper */
+  ctx.shadowBlur = 22;
+  ctx.globalAlpha = .48;
+  ctx.fill();
+
+  /* Sanfte Lichtkante */
+  ctx.globalAlpha = .8;
+  ctx.shadowBlur = 16;
+  ctx.strokeStyle = colors[0];
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/* ANIMATION */
+
+function draw(time) {
+  const w = innerWidth;
+  const h = innerHeight;
+  const t = time*.001;
 
   ctx.clearRect(0,0,w,h);
 
-  const gradient=ctx.createLinearGradient(0,0,w,h);
-  gradient.addColorStop(0,"#030719");
-  gradient.addColorStop(0.5,"#09051b");
-  gradient.addColorStop(1,"#020b18");
+  const bg = ctx.createLinearGradient(0,0,w,h);
+  bg.addColorStop(0,"#020718");
+  bg.addColorStop(.5,"#09051d");
+  bg.addColorStop(1,"#020915");
 
-  ctx.fillStyle=gradient;
+  ctx.fillStyle = bg;
   ctx.fillRect(0,0,w,h);
 
-  const energy=
-    0.55+
-    0.22*Math.sin(t*2.4)+
-    0.13*Math.sin(t*5.1);
+  const energy =
+    .55+
+    .22*Math.sin(t*2.4)+
+    .13*Math.sin(t*5.1);
 
-  const intensity=Math.max(0.25,energy);
-  const centerY=h*0.5;
+  /* Weiche Hintergrundbeleuchtung */
+  for(let side=0;side<2;side++) {
+    const x = side===0 ? w*.18 : w*.82;
 
-  const colors=[
-    "#00f5ff",
-    "#168bff",
-    "#7450ff",
-    "#e044ff",
-    "#ff39bc"
-  ];
-
-  /* Neon-Energiefaecher links und rechts */
-  for(let side=0;side<2;side++){
-    const direction=side===0?1:-1;
-    const originX=side===0?0:w;
-
-    for(let layer=0;layer<5;layer++){
-      const color=colors[layer];
-
-      for(let strand=0;strand<3;strand++){
-        ctx.beginPath();
-
-        const spread=
-          (layer-2)*0.14+
-          (strand-1)*0.08;
-
-        const reach=w*0.43;
-
-        for(let step=0;step<=120;step++){
-          const p=step/120;
-          const x=originX+direction*p*reach;
-
-          const pulse=
-            Math.sin(
-              p*22-t*(2.2+layer*0.18)
-              +strand*1.4+layer
-            )*(35+intensity*95);
-
-          const ripple=
-            Math.sin(
-              p*48+t*3.4+layer
-            )*(8+intensity*22);
-
-          const fan=
-            spread*h*Math.sin(p*Math.PI*0.85);
-
-          const y=centerY+
-            fan+
-            (pulse+ripple)*Math.sin(p*Math.PI);
-
-          if(step===0)ctx.moveTo(x,y);
-          else ctx.lineTo(x,y);
-        }
-
-        ctx.strokeStyle=color;
-        ctx.lineWidth=strand===1?2.8:1.3;
-        ctx.shadowBlur=28+intensity*24;
-        ctx.shadowColor=color;
-        ctx.globalAlpha=strand===1?0.95:0.45;
-        ctx.stroke();
-      }
-    }
-  }
-
-  /* Leuchtende Bassimpulse */
-  ctx.globalAlpha=1;
-  ctx.shadowBlur=0;
-
-  for(let side=0;side<2;side++){
-    const x=side===0?w*0.12:w*0.88;
-
-    const glow=ctx.createRadialGradient(
-      x,centerY,0,
-      x,centerY,h*0.38
+    const glow = ctx.createRadialGradient(
+      x,h*.5,0,
+      x,h*.5,h*.6
     );
 
     glow.addColorStop(
-      0,`rgba(75,60,255,${0.16*intensity})`
+      0,
+      "rgba(65,35,200,0.20)"
     );
-    glow.addColorStop(1,"rgba(0,0,0,0)");
 
-    ctx.fillStyle=glow;
+    glow.addColorStop(
+      1,
+      "rgba(0,0,0,0)"
+    );
+
+    ctx.fillStyle = glow;
     ctx.fillRect(0,0,w,h);
+  }
+
+  /* Drei breite Baender auf jeder Seite */
+  for(let side=0;side<2;side++) {
+    for(let layer=0;layer<3;layer++) {
+      ribbon(side,layer,t,energy,w,h);
+    }
   }
 
   requestAnimationFrame(draw);
@@ -253,4 +309,5 @@ requestAnimationFrame(draw);
 </script>
 </body>
 </html>
+
 
