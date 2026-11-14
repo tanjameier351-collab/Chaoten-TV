@@ -7,36 +7,59 @@
 <title>CHAOTEN-TV | 24/7 UNFILTERED</title>
 
 <style>
-  body {
-    margin: 0;
-    background: #000;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
-  }
+* {
+  box-sizing: border-box;
+}
 
-  h1 {
-    margin: 15px;
-    font-size: 28px;
-  }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
 
-  video {
-    width: 100%;
-    height: 85vh;
-    object-fit: contain;
-    background: black;
-  }
+.screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Weichgezeichneter Videohintergrund */
+#background {
+  position: absolute;
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  filter: blur(35px) brightness(0.45);
+  pointer-events: none;
+}
+
+/* Scharfes Hauptvideo */
+#player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
+}
 </style>
 </head>
 
 <body>
 
-
-<video id="player" autoplay muted playsinline controls></video>
+<div class="screen">
+  <video id="background" muted playsinline></video>
+  <video id="player" autoplay muted playsinline controls></video>
+</div>
 
 <script>
 const base =
-  "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/";
+"https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/";
 
 const videos = [
   {
@@ -72,8 +95,8 @@ const videos = [
 ];
 
 const player = document.getElementById("player");
+const background = document.getElementById("background");
 
-// Gemeinsamer, fester Sendestart
 const sendestart = Date.UTC(2026, 10, 13, 0, 0, 0);
 
 const totalDuration = videos.reduce(
@@ -81,19 +104,15 @@ const totalDuration = videos.reduce(
 );
 
 let currentIndex = -1;
-let loading = false;
 
-function getBroadcastPosition() {
+function getPosition() {
   let elapsed =
     Math.max(0, (Date.now() - sendestart) / 1000)
     % totalDuration;
 
   for (let i = 0; i < videos.length; i++) {
     if (elapsed < videos[i].duration) {
-      return {
-        index: i,
-        seconds: elapsed
-      };
+      return { index: i, seconds: elapsed };
     }
     elapsed -= videos[i].duration;
   }
@@ -102,13 +121,18 @@ function getBroadcastPosition() {
 }
 
 function synchronize() {
-  const position = getBroadcastPosition();
+  const position = getPosition();
 
   if (currentIndex !== position.index) {
     currentIndex = position.index;
-    loading = true;
-    player.src = base + videos[currentIndex].file;
+
+    const url = base + videos[currentIndex].file;
+
+    player.src = url;
+    background.src = url;
+
     player.load();
+    background.load();
   }
 
   if (player.readyState >= 1) {
@@ -123,16 +147,31 @@ function synchronize() {
       } catch (error) {}
     }
 
-    loading = false;
-
     if (player.paused) {
       player.play().catch(() => {});
+    }
+  }
+
+  if (background.readyState >= 1) {
+    const target = Math.min(
+      position.seconds,
+      Math.max(0, background.duration - 0.2)
+    );
+
+    if (Math.abs(background.currentTime - target) > 0.5) {
+      try {
+        background.currentTime = target;
+      } catch (error) {}
+    }
+
+    if (background.paused) {
+      background.play().catch(() => {});
     }
   }
 }
 
 player.addEventListener("loadedmetadata", synchronize);
-player.addEventListener("ended", synchronize);
+background.addEventListener("loadedmetadata", synchronize);
 
 setInterval(synchronize, 3000);
 synchronize();
