@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CHAOTEN-TV | 24/7 UNFILTERED</title>
+
 <style>
   body {
     margin: 0;
@@ -13,69 +14,116 @@
     font-family: Arial, sans-serif;
     text-align: center;
   }
-  h1 { margin: 20px; }
+
+  h1 {
+    margin: 15px;
+    font-size: 28px;
+  }
+
   video {
     width: 100%;
-    height: 80vh;
+    height: 85vh;
     object-fit: contain;
     background: black;
   }
 </style>
 </head>
+
 <body>
 <h1>CHAOTEN-TV | 24/7 UNFILTERED</h1>
+
 <video id="player" autoplay muted playsinline controls></video>
 
 <script>
+const base =
+  "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/";
+
 const videos = [
   {
-    url: "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/Marc.-.Narben.machen.dich.harter.-.Marc.1080p.mp4",
+    name: "Narben machen dich härter",
+    file: "Marc.-.Narben.machen.dich.harter.-.Marc.1080p.mp4",
     duration: 209
+  },
+  {
+    name: "1004",
+    file: "1004.1.mp4",
+    duration: 273
+  },
+  {
+    name: "After Midnight - Velvet Nights",
+    file: "Marc.-.Afther.Midnight.Velvet.Nights.-.Stay.Until.Sunrise.-.Marc.1080p.mp4",
+    duration: 276
+  },
+  {
+    name: "Beyond The Night",
+    file: "Marc.-.Beyond.The.Night.-.Marc.1080p.mp4",
+    duration: 375
+  },
+  {
+    name: "The Things That Stay",
+    file: "Marc.-.Country.The.Thinks.That.Stay.-.Marc.1080p.mp4",
+    duration: 268
+  },
+  {
+    name: "Break The Static",
+    file: "MARC.BREAK.THE.STATIC.Epic.Festival.EDM.Experience.Official.Music.Video.-.Marc.1080p.mp4",
+    duration: 231
   }
 ];
 
-// Gemeinsamer Sendestart: 13.11.2026, 00:00 UTC
-const sendestart = Date.UTC(2026, 10, 13, 0, 0, 0);
 const player = document.getElementById("player");
 
-let currentVideo = -1;
-let switching = false;
+// Gemeinsamer, fester Sendestart
+const sendestart = Date.UTC(2026, 10, 13, 0, 0, 0);
 
-function getPosition() {
-  const total = videos.reduce((sum, v) => sum + v.duration, 0);
-  let elapsed = Math.max(0, (Date.now() - sendestart) / 1000) % total;
+const totalDuration = videos.reduce(
+  (sum, video) => sum + video.duration, 0
+);
+
+let currentIndex = -1;
+let loading = false;
+
+function getBroadcastPosition() {
+  let elapsed =
+    Math.max(0, (Date.now() - sendestart) / 1000)
+    % totalDuration;
 
   for (let i = 0; i < videos.length; i++) {
     if (elapsed < videos[i].duration) {
-      return { index: i, seconds: elapsed };
+      return {
+        index: i,
+        seconds: elapsed
+      };
     }
     elapsed -= videos[i].duration;
   }
+
   return { index: 0, seconds: 0 };
 }
 
 function synchronize() {
-  const position = getPosition();
-  const video = videos[position.index];
+  const position = getBroadcastPosition();
 
-  if (currentVideo !== position.index) {
-    currentVideo = position.index;
-    switching = true;
-    player.src = video.url;
+  if (currentIndex !== position.index) {
+    currentIndex = position.index;
+    loading = true;
+    player.src = base + videos[currentIndex].file;
     player.load();
   }
 
   if (player.readyState >= 1) {
     const target = Math.min(
       position.seconds,
-      Math.max(0, (player.duration || video.duration) - 0.2)
+      Math.max(0, player.duration - 0.2)
     );
 
     if (Math.abs(player.currentTime - target) > 2) {
-      player.currentTime = target;
+      try {
+        player.currentTime = target;
+      } catch (error) {}
     }
 
-    switching = false;
+    loading = false;
 
     if (player.paused) {
       player.play().catch(() => {});
