@@ -5,50 +5,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CHAOTEN-TV Soundwave Test</title>
-
 <style>
 * { box-sizing: border-box; }
 
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #02030b;
+html,body {
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#02030b;
 }
 
 .screen {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background: #02030b;
+  position:relative;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  background:#02030b;
 }
 
 #visualizer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
 }
 
 #player {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: transparent;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:transparent;
 }
 
 #status {
-  position: absolute;
-  bottom: 8px;
-  left: 10px;
-  color: #aab4d8;
-  font: 11px Arial, sans-serif;
-  opacity: 0.65;
-  pointer-events: none;
+  position:absolute;
+  bottom:8px;
+  left:10px;
+  color:#aab4d8;
+  font:11px Arial,sans-serif;
+  opacity:.65;
+  pointer-events:none;
 }
 </style>
 </head>
@@ -73,49 +72,44 @@ const videos = [
   ["MARC.BREAK.THE.STATIC.Epic.Festival.EDM.Experience.Official.Music.Video.-.Marc.1080p.mp4",231]
 ];
 
-const player = document.getElementById("player");
-const canvas = document.getElementById("visualizer");
-const ctx = canvas.getContext("2d");
-const status = document.getElementById("status");
+const player=document.getElementById("player");
+const canvas=document.getElementById("visualizer");
+const ctx=canvas.getContext("2d");
+const status=document.getElementById("status");
 
-const sendestart = Date.UTC(2026,10,13,0,0,0);
-const total = videos.reduce((sum,v) => sum + v[1],0);
+const sendestart=Date.UTC(2026,10,13,0,0,0);
+const total=videos.reduce((sum,v)=>sum+v[1],0);
 
-let currentIndex = -1;
-let audioContext = null;
-let analyser = null;
-let frequencyData = null;
-let audioReady = false;
+let currentIndex=-1;
 
-function broadcastPosition() {
-  let seconds =
+function broadcastPosition(){
+  let seconds=
     Math.max(0,(Date.now()-sendestart)/1000)%total;
 
   for(let i=0;i<videos.length;i++){
-    if(seconds < videos[i][1]){
+    if(seconds<videos[i][1]){
       return {index:i,seconds};
     }
-    seconds -= videos[i][1];
+    seconds-=videos[i][1];
   }
-
   return {index:0,seconds:0};
 }
 
-function sync() {
-  const pos = broadcastPosition();
+function sync(){
+  const pos=broadcastPosition();
 
-  if(currentIndex !== pos.index){
-    currentIndex = pos.index;
-    player.src = base + videos[pos.index][0];
+  if(currentIndex!==pos.index){
+    currentIndex=pos.index;
+    player.src=base+videos[pos.index][0];
     player.load();
   }
 
-  if(player.readyState >= 1){
-    const duration = Number.isFinite(player.duration)
+  if(player.readyState>=1){
+    const duration=Number.isFinite(player.duration)
       ? player.duration
       : videos[pos.index][1];
 
-    const target = Math.min(
+    const target=Math.min(
       pos.seconds,Math.max(0,duration-0.2)
     );
 
@@ -135,157 +129,128 @@ player.addEventListener("ended",sync);
 setInterval(sync,3000);
 sync();
 
-/*
-  Audioanalyse nur versuchen, wenn der
-  Benutzer sie ausdrücklich aktiviert.
-  Bei externen Videoquellen kann CORS
-  die Analyse verhindern.
-*/
-async function enableAudioAnalysis(){
-  if(audioReady) return;
-
-  try {
-    const AC = window.AudioContext ||
-               window.webkitAudioContext;
-
-    if(!AC) return;
-
-    audioContext = new AC();
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.82;
-
-    const source =
-      audioContext.createMediaElementSource(player);
-
-    source.connect(analyser);
-    analyser.connect(audioContext.destination);
-
-    frequencyData =
-      new Uint8Array(analyser.frequencyBinCount);
-
-    await audioContext.resume();
-    audioReady = true;
-    status.textContent = "Audioanalyse aktiviert";
-  } catch(e) {
-    status.textContent = "Animierter Soundwave-Modus";
-  }
-}
-
-player.addEventListener("play",()=>{
-  if(audioContext && audioContext.state==="suspended"){
-    audioContext.resume().catch(()=>{});
-  }
-});
-
-/* Canvas an die Bildschirmgroesse anpassen */
+/* Bildschirmgroesse */
 function resize(){
-  const dpr = Math.min(window.devicePixelRatio||1,2);
-  canvas.width = Math.round(innerWidth*dpr);
-  canvas.height = Math.round(innerHeight*dpr);
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=Math.round(innerWidth*dpr);
+  canvas.height=Math.round(innerHeight*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 
 window.addEventListener("resize",resize);
 resize();
 
+/* CLUB-ENERGIEFAECHER */
 function draw(time){
-  const w = innerWidth;
-  const h = innerHeight;
-  const t = time*0.001;
+  const w=innerWidth;
+  const h=innerHeight;
+  const t=time*0.001;
 
   ctx.clearRect(0,0,w,h);
 
-  const gradient = ctx.createLinearGradient(0,0,w,h);
+  const gradient=ctx.createLinearGradient(0,0,w,h);
   gradient.addColorStop(0,"#030719");
   gradient.addColorStop(0.5,"#09051b");
   gradient.addColorStop(1,"#020b18");
 
-  ctx.fillStyle = gradient;
+  ctx.fillStyle=gradient;
   ctx.fillRect(0,0,w,h);
 
-  let energy = 0.5;
+  const energy=
+    0.55+
+    0.22*Math.sin(t*2.4)+
+    0.13*Math.sin(t*5.1);
 
-  if(audioReady && analyser){
-    analyser.getByteFrequencyData(frequencyData);
-
-    let sum=0;
-    for(let i=0;i<frequencyData.length;i++){
-      sum += frequencyData[i];
-    }
-
-    const average =
-      sum/frequencyData.length/255;
-
-    if(average>0.005){
-      energy = Math.max(0.15,average*2.5);
-    } else {
-      energy = 0.35+0.15*Math.sin(t*2.2);
-    }
-  } else {
-    energy = 0.45+0.18*Math.sin(t*2.4);
-  }
+  const intensity=Math.max(0.25,energy);
+  const centerY=h*0.5;
 
   const colors=[
-    "#00eaff",
-    "#288cff",
-    "#7957ff",
-    "#c04cff"
+    "#00f5ff",
+    "#168bff",
+    "#7450ff",
+    "#e044ff",
+    "#ff39bc"
   ];
 
-  /* Geschwungene, leuchtende Soundwaves */
-  for(let layer=0;layer<4;layer++){
-    ctx.beginPath();
+  /* Neon-Energiefaecher links und rechts */
+  for(let side=0;side<2;side++){
+    const direction=side===0?1:-1;
+    const originX=side===0?0:w;
 
-    const amplitude =
-      (18+layer*13)*(0.65+energy);
+    for(let layer=0;layer<5;layer++){
+      const color=colors[layer];
 
-    const centerY = h*0.5;
+      for(let strand=0;strand<3;strand++){
+        ctx.beginPath();
 
-    for(let x=0;x<=w;x+=3){
-      const nx=x/w;
+        const spread=
+          (layer-2)*0.14+
+          (strand-1)*0.08;
 
-      const wave =
-        Math.sin(nx*17-t*(1.5+layer*0.12)+layer)
-        *amplitude;
+        const reach=w*0.43;
 
-      const detail =
-        Math.sin(nx*37+t*2.1+layer)
-        *amplitude*0.25;
+        for(let step=0;step<=120;step++){
+          const p=step/120;
+          const x=originX+direction*p*reach;
 
-      const envelope =
-        Math.pow(Math.sin(Math.PI*nx),0.7);
+          const pulse=
+            Math.sin(
+              p*22-t*(2.2+layer*0.18)
+              +strand*1.4+layer
+            )*(35+intensity*95);
 
-      const y=centerY+
-        (wave+detail)*envelope+
-        (layer-1.5)*19;
+          const ripple=
+            Math.sin(
+              p*48+t*3.4+layer
+            )*(8+intensity*22);
 
-      if(x===0) ctx.moveTo(x,y);
-      else ctx.lineTo(x,y);
+          const fan=
+            spread*h*Math.sin(p*Math.PI*0.85);
+
+          const y=centerY+
+            fan+
+            (pulse+ripple)*Math.sin(p*Math.PI);
+
+          if(step===0)ctx.moveTo(x,y);
+          else ctx.lineTo(x,y);
+        }
+
+        ctx.strokeStyle=color;
+        ctx.lineWidth=strand===1?2.8:1.3;
+        ctx.shadowBlur=28+intensity*24;
+        ctx.shadowColor=color;
+        ctx.globalAlpha=strand===1?0.95:0.45;
+        ctx.stroke();
+      }
     }
-
-    ctx.strokeStyle=colors[layer];
-    ctx.lineWidth=2.5;
-    ctx.shadowBlur=22;
-    ctx.shadowColor=colors[layer];
-    ctx.globalAlpha=0.8;
-    ctx.stroke();
   }
 
+  /* Leuchtende Bassimpulse */
   ctx.globalAlpha=1;
   ctx.shadowBlur=0;
+
+  for(let side=0;side<2;side++){
+    const x=side===0?w*0.12:w*0.88;
+
+    const glow=ctx.createRadialGradient(
+      x,centerY,0,
+      x,centerY,h*0.38
+    );
+
+    glow.addColorStop(
+      0,`rgba(75,60,255,${0.16*intensity})`
+    );
+    glow.addColorStop(1,"rgba(0,0,0,0)");
+
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,w,h);
+  }
 
   requestAnimationFrame(draw);
 }
 
 requestAnimationFrame(draw);
-
-/*
-  Audioanalyse kann ueber die Konsole
-  mit enableAudioAnalysis() getestet werden.
-  Standardmaessig bleibt der Tonweg
-  des funktionierenden Players erhalten.
-*/
 </script>
 </body>
 </html>
+
