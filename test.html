@@ -3,54 +3,71 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CHAOTEN-TV | Neon Energy</title>
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+<title>CHAOTEN-TV | Neon Club</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing:border-box; }
 
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #02030b;
+html,body {
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#02030b;
 }
 
 .screen {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background: #02030b;
+  position:relative;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  background:#02030b;
 }
 
+/* Neon-Hintergrund */
 #visualizer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+/* Video getrennt vom Hintergrund */
+.video-area {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
 }
 
 #player {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: transparent;
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  background:transparent;
+  pointer-events:auto;
+}
+
+/* Unsichtbar bis Videoformat bekannt */
+#player:not(.ready) {
+  visibility:hidden;
 }
 
 #status {
-  position: absolute;
-  bottom: 8px;
-  left: 10px;
-  color: #aab4d8;
-  font: 11px Arial, sans-serif;
-  opacity: .6;
-  pointer-events: none;
+  position:absolute;
+  left:12px;
+  bottom:10px;
+  color:#b0b8d9;
+  font:11px Arial,sans-serif;
+  opacity:.7;
+  pointer-events:none;
 }
 </style>
 </head>
@@ -58,13 +75,17 @@ html, body {
 <body>
 <div class="screen">
   <canvas id="visualizer"></canvas>
-  <video id="player" autoplay muted playsinline controls></video>
-  <div id="status">Neon Energy Test</div>
+
+  <div class="video-area">
+    <video id="player"
+      autoplay muted playsinline controls
+      preload="auto"></video>
+  </div>
+
+  <div id="status">CHAOTEN-TV Neon Test</div>
 </div>
 
 <script>
-/* MARCS SECHS MUSIKVIDEOS */
-
 const base =
 "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/";
 
@@ -77,126 +98,162 @@ const videos = [
   ["MARC.BREAK.THE.STATIC.Epic.Festival.EDM.Experience.Official.Music.Video.-.Marc.1080p.mp4",231]
 ];
 
-const player = document.getElementById("player");
-const canvas = document.getElementById("visualizer");
-const ctx = canvas.getContext("2d");
+const player=document.getElementById("player");
+const canvas=document.getElementById("visualizer");
+const ctx=canvas.getContext("2d");
+const status=document.getElementById("status");
 
-const sendestart = Date.UTC(2026,10,13,0,0,0);
-const total = videos.reduce((sum,v) => sum+v[1],0);
+const start=Date.UTC(2026,10,13,0,0,0);
+const total=videos.reduce((s,v)=>s+v[1],0);
 
-let currentIndex = -1;
+let currentIndex=-1;
+let lastSeek=0;
+let loading=false;
 
-/* ENDLOS-SENDEPLAN */
+/* Sendezeit berechnen */
+function position(){
+  let seconds=
+    Math.max(0,(Date.now()-start)/1000)%total;
 
-function broadcastPosition() {
-  let seconds =
-    Math.max(0,(Date.now()-sendestart)/1000)%total;
-
-  for(let i=0;i<videos.length;i++) {
-    if(seconds < videos[i][1]) {
+  for(let i=0;i<videos.length;i++){
+    if(seconds<videos[i][1]){
       return {index:i,seconds};
     }
-    seconds -= videos[i][1];
+    seconds-=videos[i][1];
   }
-
   return {index:0,seconds:0};
 }
 
-function sync() {
-  const pos = broadcastPosition();
+/* Videoformat korrekt anzeigen */
+function sizeVideo(){
+  if(!player.videoWidth || !player.videoHeight)
+    return;
 
-  if(currentIndex !== pos.index) {
-    currentIndex = pos.index;
-    player.src = base+videos[pos.index][0];
-    player.load();
+  const ratio=player.videoWidth/player.videoHeight;
+  const screenRatio=innerWidth/innerHeight;
+
+  if(ratio>screenRatio){
+    player.style.width="100vw";
+    player.style.height="auto";
+  } else {
+    player.style.width="auto";
+    player.style.height="100vh";
   }
 
-  if(player.readyState >= 1) {
-    const duration = Number.isFinite(player.duration)
-      ? player.duration
-      : videos[pos.index][1];
+  player.classList.add("ready");
+}
 
-    const target = Math.min(
-      pos.seconds,
-      Math.max(0,duration-0.2)
+window.addEventListener("resize",sizeVideo);
+
+/* Video starten */
+function loadVideo(index,seconds){
+  loading=true;
+  currentIndex=index;
+  player.classList.remove("ready");
+
+  player.src=base+videos[index][0];
+  player.load();
+
+  player.onloadedmetadata=()=>{
+    sizeVideo();
+
+    const maxTime=Math.max(
+      0,player.duration-0.3
     );
 
-    if(Math.abs(player.currentTime-target)>2) {
-      try {
-        player.currentTime = target;
-      } catch(e) {}
+    const target=Math.min(seconds,maxTime);
+
+    if(target>0.5){
+      try { player.currentTime=target; }
+      catch(e){}
     }
 
-    if(player.paused) {
-      player.play().catch(()=>{});
-    }
+    loading=false;
+    player.play().catch(()=>{});
+  };
+}
+
+/* Schonende Synchronisierung */
+function sync(){
+  const pos=position();
+
+  if(currentIndex!==pos.index){
+    loadVideo(pos.index,pos.seconds);
+    return;
+  }
+
+  if(loading || player.readyState<2)
+    return;
+
+  const difference=
+    Math.abs(player.currentTime-pos.seconds);
+
+  /* Nur bei grosser Abweichung korrigieren */
+  if(difference>15 &&
+     Date.now()-lastSeek>30000){
+
+    lastSeek=Date.now();
+
+    try {
+      player.currentTime=pos.seconds;
+    } catch(e){}
+  }
+
+  if(player.paused && !player.ended){
+    player.play().catch(()=>{});
   }
 }
 
-player.addEventListener("loadedmetadata",sync);
 player.addEventListener("ended",sync);
-
-setInterval(sync,3000);
+setInterval(sync,5000);
 sync();
 
-/* CANVAS ANPASSEN */
-
-function resize() {
-  const dpr = Math.min(window.devicePixelRatio||1,2);
-
-  canvas.width = Math.round(innerWidth*dpr);
-  canvas.height = Math.round(innerHeight*dpr);
-
+/* Canvas */
+function resize(){
+  const dpr=Math.min(devicePixelRatio||1,2);
+  canvas.width=Math.round(innerWidth*dpr);
+  canvas.height=Math.round(innerHeight*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 
 window.addEventListener("resize",resize);
 resize();
 
-/* BREITE NEON-ENERGIEBAENDER */
-
-const palettes = [
-  ["#00f5ff","#008cff","#734cff"],
-  ["#168bff","#6845ff","#d02bff"],
-  ["#754cff","#dd37ff","#ff43bd"]
+/* Breite Neon-Lichtbaender */
+const colors=[
+  ["#00f5ff","#168bff"],
+  ["#287bff","#7845ff"],
+  ["#9b45ff","#ff39cb"]
 ];
 
-function ribbon(side,layer,t,energy,w,h) {
-  const direction = side===0 ? 1 : -1;
-  const origin = side===0 ? 0 : w;
+function ribbon(side,layer,t,energy,w,h){
+  const dir=side===0?1:-1;
+  const origin=side===0?0:w;
+  const reach=w*.48;
+  const center=h*.5;
 
-  const reach = w*0.47;
-  const center = h*0.5;
+  const upper=[];
+  const lower=[];
 
-  const thickness = 38+layer*12+energy*34;
-  const points = 100;
+  for(let i=0;i<=100;i++){
+    const p=i/100;
+    const x=origin+dir*p*reach;
 
-  const upper = [];
-  const lower = [];
+    const envelope=Math.sin(Math.PI*p);
 
-  for(let i=0;i<=points;i++) {
-    const p = i/points;
-    const x = origin+direction*p*reach;
+    const wave=
+      Math.sin(p*9-t*(1.4+layer*.2)+layer)
+      *(75+energy*110);
 
-    const envelope = Math.sin(Math.PI*p);
+    const spread=
+      (layer-1)*h*.2*envelope;
 
-    const wave =
-      Math.sin(p*11-t*(1.4+layer*.22)+layer*1.8)
-      *(65+energy*90);
+    const y=center+spread+wave*envelope;
 
-    const detail =
-      Math.sin(p*23+t*1.7+layer)
-      *(12+energy*20);
-
-    const spread =
-      (layer-1)*h*.17*Math.sin(p*Math.PI*.85);
-
-    const y = center+
-      spread+
-      (wave+detail)*envelope;
-
-    const half =
-      thickness*(.35+.65*envelope)*.5;
+    /* Deutlich breitere Baender */
+    const half=
+      (45+energy*60)*
+      (.3+.7*envelope);
 
     upper.push([x,y-half]);
     lower.push([x,y+half]);
@@ -205,99 +262,70 @@ function ribbon(side,layer,t,energy,w,h) {
   ctx.beginPath();
 
   upper.forEach((p,i)=>{
-    if(i===0) ctx.moveTo(p[0],p[1]);
-    else ctx.lineTo(p[0],p[1]);
+    if(i===0)ctx.moveTo(...p);
+    else ctx.lineTo(...p);
   });
 
   lower.reverse().forEach(p=>{
-    ctx.lineTo(p[0],p[1]);
+    ctx.lineTo(...p);
   });
 
   ctx.closePath();
 
-  const colors = palettes[layer];
-
-  const grad = ctx.createLinearGradient(
-    origin,center-h*.35,
-    origin,center+h*.35
+  const gradient=ctx.createLinearGradient(
+    0,center-h*.4,
+    0,center+h*.4
   );
 
-  grad.addColorStop(0,colors[0]);
-  grad.addColorStop(.5,colors[1]);
-  grad.addColorStop(1,colors[2]);
+  gradient.addColorStop(0,colors[layer][0]);
+  gradient.addColorStop(1,colors[layer][1]);
 
   ctx.save();
 
-  /* Transparenter aeusserer Lichtschein */
-  ctx.globalAlpha = .22;
-  ctx.shadowBlur = 55;
-  ctx.shadowColor = colors[1];
-  ctx.fillStyle = grad;
+  /* Breiter weicher Lichtschein */
+  ctx.shadowBlur=65;
+  ctx.shadowColor=colors[layer][0];
+  ctx.globalAlpha=.35;
+  ctx.fillStyle=gradient;
   ctx.fill();
 
-  /* Breiter leuchtender Bandkoerper */
-  ctx.shadowBlur = 22;
-  ctx.globalAlpha = .48;
+  /* Sichtbarer Bandkoerper */
+  ctx.shadowBlur=25;
+  ctx.globalAlpha=.72;
   ctx.fill();
 
-  /* Sanfte Lichtkante */
-  ctx.globalAlpha = .8;
-  ctx.shadowBlur = 16;
-  ctx.strokeStyle = colors[0];
-  ctx.lineWidth = 2;
+  /* Dezente Lichtkante */
+  ctx.globalAlpha=.8;
+  ctx.lineWidth=1.5;
+  ctx.strokeStyle=colors[layer][0];
   ctx.stroke();
 
   ctx.restore();
 }
 
-/* ANIMATION */
-
-function draw(time) {
-  const w = innerWidth;
-  const h = innerHeight;
-  const t = time*.001;
+/* Animation */
+function draw(ms){
+  const w=innerWidth;
+  const h=innerHeight;
+  const t=ms*.001;
 
   ctx.clearRect(0,0,w,h);
 
-  const bg = ctx.createLinearGradient(0,0,w,h);
-  bg.addColorStop(0,"#020718");
-  bg.addColorStop(.5,"#09051d");
-  bg.addColorStop(1,"#020915");
+  const bg=ctx.createLinearGradient(0,0,w,h);
+  bg.addColorStop(0,"#020818");
+  bg.addColorStop(.5,"#0a051d");
+  bg.addColorStop(1,"#020818");
 
-  ctx.fillStyle = bg;
+  ctx.fillStyle=bg;
   ctx.fillRect(0,0,w,h);
 
-  const energy =
-    .55+
-    .22*Math.sin(t*2.4)+
-    .13*Math.sin(t*5.1);
+  const energy=
+    .65+
+    .2*Math.sin(t*2.5)+
+    .15*Math.sin(t*5.2);
 
-  /* Weiche Hintergrundbeleuchtung */
-  for(let side=0;side<2;side++) {
-    const x = side===0 ? w*.18 : w*.82;
-
-    const glow = ctx.createRadialGradient(
-      x,h*.5,0,
-      x,h*.5,h*.6
-    );
-
-    glow.addColorStop(
-      0,
-      "rgba(65,35,200,0.20)"
-    );
-
-    glow.addColorStop(
-      1,
-      "rgba(0,0,0,0)"
-    );
-
-    ctx.fillStyle = glow;
-    ctx.fillRect(0,0,w,h);
-  }
-
-  /* Drei breite Baender auf jeder Seite */
-  for(let side=0;side<2;side++) {
-    for(let layer=0;layer<3;layer++) {
+  for(let side=0;side<2;side++){
+    for(let layer=0;layer<3;layer++){
       ribbon(side,layer,t,energy,w,h);
     }
   }
@@ -309,5 +337,6 @@ requestAnimationFrame(draw);
 </script>
 </body>
 </html>
+
 
 
