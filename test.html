@@ -3,340 +3,350 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width,initial-scale=1">
-<title>CHAOTEN-TV | Neon Club</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHAOTEN-TV | Soundwave Test</title>
 
 <style>
-* { box-sizing:border-box; }
+* { box-sizing: border-box; }
 
-html,body {
-  margin:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  background:#02030b;
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
 }
 
 .screen {
-  position:relative;
-  width:100vw;
-  height:100vh;
-  overflow:hidden;
-  background:#02030b;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
 }
 
-/* Neon-Hintergrund */
-#visualizer {
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
+#background {
+  position: absolute;
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  filter: blur(35px) brightness(0.45);
+  pointer-events: none;
 }
 
-/* Video getrennt vom Hintergrund */
-.video-area {
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
+#waves {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 #player {
-  display:block;
-  width:auto;
-  height:auto;
-  max-width:100%;
-  max-height:100%;
-  object-fit:contain;
-  background:transparent;
-  pointer-events:auto;
-}
-
-/* Unsichtbar bis Videoformat bekannt */
-#player:not(.ready) {
-  visibility:hidden;
-}
-
-#status {
-  position:absolute;
-  left:12px;
-  bottom:10px;
-  color:#b0b8d9;
-  font:11px Arial,sans-serif;
-  opacity:.7;
-  pointer-events:none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
 }
 </style>
 </head>
 
 <body>
 <div class="screen">
-  <canvas id="visualizer"></canvas>
-
-  <div class="video-area">
-    <video id="player"
-      autoplay muted playsinline controls
-      preload="auto"></video>
-  </div>
-
-  <div id="status">CHAOTEN-TV Neon Test</div>
+  <video id="background" muted playsinline></video>
+  <canvas id="waves"></canvas>
+  <video id="player" autoplay muted playsinline controls></video>
 </div>
 
 <script>
+/* ORIGINAL-SENDER */
+
 const base =
 "https://github.com/tanjameier351-collab/Chaoten-TV/releases/download/v1.0/";
 
 const videos = [
-  ["Marc.-.Narben.machen.dich.harter.-.Marc.1080p.mp4",209],
-  ["1004.1.mp4",273],
-  ["Marc.-.Afther.Midnight.Velvet.Nights.-.Stay.Until.Sunrise.-.Marc.1080p.mp4",276],
-  ["Marc.-.Beyond.The.Night.-.Marc.1080p.mp4",375],
-  ["Marc.-.Country.The.Thinks.That.Stay.-.Marc.1080p.mp4",268],
-  ["MARC.BREAK.THE.STATIC.Epic.Festival.EDM.Experience.Official.Music.Video.-.Marc.1080p.mp4",231]
+  {
+    name: "Narben machen dich härter",
+    file: "Marc.-.Narben.machen.dich.harter.-.Marc.1080p.mp4",
+    duration: 209
+  },
+  {
+    name: "1004",
+    file: "1004.1.mp4",
+    duration: 273
+  },
+  {
+    name: "After Midnight - Velvet Nights",
+    file: "Marc.-.Afther.Midnight.Velvet.Nights.-.Stay.Until.Sunrise.-.Marc.1080p.mp4",
+    duration: 276
+  },
+  {
+    name: "Beyond The Night",
+    file: "Marc.-.Beyond.The.Night.-.Marc.1080p.mp4",
+    duration: 375
+  },
+  {
+    name: "The Things That Stay",
+    file: "Marc.-.Country.The.Thinks.That.Stay.-.Marc.1080p.mp4",
+    duration: 268
+  },
+  {
+    name: "Break The Static",
+    file: "MARC.BREAK.THE.STATIC.Epic.Festival.EDM.Experience.Official.Music.Video.-.Marc.1080p.mp4",
+    duration: 231
+  }
 ];
 
-const player=document.getElementById("player");
-const canvas=document.getElementById("visualizer");
-const ctx=canvas.getContext("2d");
-const status=document.getElementById("status");
+const player = document.getElementById("player");
+const background = document.getElementById("background");
 
-const start=Date.UTC(2026,10,13,0,0,0);
-const total=videos.reduce((s,v)=>s+v[1],0);
+const sendestart = Date.UTC(2026, 10, 13, 0, 0, 0);
 
-let currentIndex=-1;
-let lastSeek=0;
-let loading=false;
+const totalDuration = videos.reduce(
+  (sum, video) => sum + video.duration, 0
+);
 
-/* Sendezeit berechnen */
-function position(){
-  let seconds=
-    Math.max(0,(Date.now()-start)/1000)%total;
+let currentIndex = -1;
 
-  for(let i=0;i<videos.length;i++){
-    if(seconds<videos[i][1]){
-      return {index:i,seconds};
+function getPosition() {
+  let elapsed =
+    Math.max(0, (Date.now() - sendestart) / 1000)
+    % totalDuration;
+
+  for (let i = 0; i < videos.length; i++) {
+    if (elapsed < videos[i].duration) {
+      return { index: i, seconds: elapsed };
     }
-    seconds-=videos[i][1];
-  }
-  return {index:0,seconds:0};
-}
-
-/* Videoformat korrekt anzeigen */
-function sizeVideo(){
-  if(!player.videoWidth || !player.videoHeight)
-    return;
-
-  const ratio=player.videoWidth/player.videoHeight;
-  const screenRatio=innerWidth/innerHeight;
-
-  if(ratio>screenRatio){
-    player.style.width="100vw";
-    player.style.height="auto";
-  } else {
-    player.style.width="auto";
-    player.style.height="100vh";
+    elapsed -= videos[i].duration;
   }
 
-  player.classList.add("ready");
+  return { index: 0, seconds: 0 };
 }
 
-window.addEventListener("resize",sizeVideo);
+function synchronize() {
+  const position = getPosition();
 
-/* Video starten */
-function loadVideo(index,seconds){
-  loading=true;
-  currentIndex=index;
-  player.classList.remove("ready");
+  if (currentIndex !== position.index) {
+    currentIndex = position.index;
 
-  player.src=base+videos[index][0];
-  player.load();
+    const url = base + videos[currentIndex].file;
 
-  player.onloadedmetadata=()=>{
-    sizeVideo();
+    player.src = url;
+    background.src = url;
 
-    const maxTime=Math.max(
-      0,player.duration-0.3
+    player.load();
+    background.load();
+  }
+
+  if (player.readyState >= 1) {
+    const target = Math.min(
+      position.seconds,
+      Math.max(0, player.duration - 0.2)
     );
 
-    const target=Math.min(seconds,maxTime);
-
-    if(target>0.5){
-      try { player.currentTime=target; }
-      catch(e){}
+    if (Math.abs(player.currentTime - target) > 2) {
+      try {
+        player.currentTime = target;
+      } catch (error) {}
     }
 
-    loading=false;
-    player.play().catch(()=>{});
-  };
-}
-
-/* Schonende Synchronisierung */
-function sync(){
-  const pos=position();
-
-  if(currentIndex!==pos.index){
-    loadVideo(pos.index,pos.seconds);
-    return;
+    if (player.paused) {
+      player.play().catch(() => {});
+    }
   }
 
-  if(loading || player.readyState<2)
-    return;
+  if (background.readyState >= 1) {
+    const target = Math.min(
+      position.seconds,
+      Math.max(0, background.duration - 0.2)
+    );
 
-  const difference=
-    Math.abs(player.currentTime-pos.seconds);
+    if (Math.abs(background.currentTime - target) > 0.5) {
+      try {
+        background.currentTime = target;
+      } catch (error) {}
+    }
 
-  /* Nur bei grosser Abweichung korrigieren */
-  if(difference>15 &&
-     Date.now()-lastSeek>30000){
-
-    lastSeek=Date.now();
-
-    try {
-      player.currentTime=pos.seconds;
-    } catch(e){}
-  }
-
-  if(player.paused && !player.ended){
-    player.play().catch(()=>{});
+    if (background.paused) {
+      background.play().catch(() => {});
+    }
   }
 }
 
-player.addEventListener("ended",sync);
-setInterval(sync,5000);
-sync();
+player.addEventListener("loadedmetadata", synchronize);
+background.addEventListener("loadedmetadata", synchronize);
 
-/* Canvas */
-function resize(){
-  const dpr=Math.min(devicePixelRatio||1,2);
-  canvas.width=Math.round(innerWidth*dpr);
-  canvas.height=Math.round(innerHeight*dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+setInterval(synchronize, 3000);
+synchronize();
+
+/* NEUE LEICHTE SOUNDWAVE-EBENE */
+
+const canvas = document.getElementById("waves");
+const ctx = canvas.getContext("2d");
+
+let width = 0;
+let height = 0;
+
+function resizeWaves() {
+  width = window.innerWidth;
+  height = window.innerHeight;
+
+  canvas.width = width;
+  canvas.height = height;
 }
 
-window.addEventListener("resize",resize);
-resize();
+window.addEventListener("resize", resizeWaves);
+resizeWaves();
 
-/* Breite Neon-Lichtbaender */
-const colors=[
-  ["#00f5ff","#168bff"],
-  ["#287bff","#7845ff"],
-  ["#9b45ff","#ff39cb"]
+const colors = [
+  "0,235,255",
+  "42,125,255",
+  "145,70,255",
+  "235,50,205"
 ];
 
-function ribbon(side,layer,t,energy,w,h){
-  const dir=side===0?1:-1;
-  const origin=side===0?0:w;
-  const reach=w*.48;
-  const center=h*.5;
+function drawWaves(ms) {
+  const t = ms * 0.001;
 
-  const upper=[];
-  const lower=[];
+  ctx.clearRect(0, 0, width, height);
 
-  for(let i=0;i<=100;i++){
-    const p=i/100;
-    const x=origin+dir*p*reach;
+  for (let side = 0; side < 2; side++) {
+    const left = side === 0;
+    const startX = left ? 0 : width;
+    const direction = left ? 1 : -1;
+    const reach = width * 0.46;
 
-    const envelope=Math.sin(Math.PI*p);
+    for (let layer = 0; layer < 4; layer++) {
+      const rgb = colors[layer];
 
-    const wave=
-      Math.sin(p*9-t*(1.4+layer*.2)+layer)
-      *(75+energy*110);
+      const center =
+        height * (0.34 + layer * 0.105);
 
-    const spread=
-      (layer-1)*h*.2*envelope;
+      const amplitude = height * 0.075;
 
-    const y=center+spread+wave*envelope;
+      const path = new Path2D();
 
-    /* Deutlich breitere Baender */
-    const half=
-      (45+energy*60)*
-      (.3+.7*envelope);
+      for (let i = 0; i <= 80; i++) {
+        const p = i / 80;
+        const x = startX + direction * p * reach;
 
-    upper.push([x,y-half]);
-    lower.push([x,y+half]);
-  }
+        const envelope =
+          Math.sin(Math.PI * p);
 
-  ctx.beginPath();
+        const motion =
+          Math.sin(
+            p * 11 - t * (1.1 + layer * 0.12)
+            + layer * 1.5
+          );
 
-  upper.forEach((p,i)=>{
-    if(i===0)ctx.moveTo(...p);
-    else ctx.lineTo(...p);
-  });
+        const detail =
+          Math.sin(p * 22 + t * 1.6 + layer)
+          * 0.22;
 
-  lower.reverse().forEach(p=>{
-    ctx.lineTo(...p);
-  });
+        const y = center +
+          (motion + detail) *
+          amplitude * envelope;
 
-  ctx.closePath();
+        if (i === 0) path.moveTo(x, y);
+        else path.lineTo(x, y);
+      }
 
-  const gradient=ctx.createLinearGradient(
-    0,center-h*.4,
-    0,center+h*.4
-  );
+      /* Weicher breiter Lichtschleier */
+      ctx.strokeStyle = `rgba(${rgb},0.08)`;
+      ctx.lineWidth = 38;
+      ctx.stroke(path);
 
-  gradient.addColorStop(0,colors[layer][0]);
-  gradient.addColorStop(1,colors[layer][1]);
+      /* Mittlerer Neon-Glow */
+      ctx.strokeStyle = `rgba(${rgb},0.22)`;
+      ctx.lineWidth = 16;
+      ctx.stroke(path);
 
-  ctx.save();
-
-  /* Breiter weicher Lichtschein */
-  ctx.shadowBlur=65;
-  ctx.shadowColor=colors[layer][0];
-  ctx.globalAlpha=.35;
-  ctx.fillStyle=gradient;
-  ctx.fill();
-
-  /* Sichtbarer Bandkoerper */
-  ctx.shadowBlur=25;
-  ctx.globalAlpha=.72;
-  ctx.fill();
-
-  /* Dezente Lichtkante */
-  ctx.globalAlpha=.8;
-  ctx.lineWidth=1.5;
-  ctx.strokeStyle=colors[layer][0];
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-/* Animation */
-function draw(ms){
-  const w=innerWidth;
-  const h=innerHeight;
-  const t=ms*.001;
-
-  ctx.clearRect(0,0,w,h);
-
-  const bg=ctx.createLinearGradient(0,0,w,h);
-  bg.addColorStop(0,"#020818");
-  bg.addColorStop(.5,"#0a051d");
-  bg.addColorStop(1,"#020818");
-
-  ctx.fillStyle=bg;
-  ctx.fillRect(0,0,w,h);
-
-  const energy=
-    .65+
-    .2*Math.sin(t*2.5)+
-    .15*Math.sin(t*5.2);
-
-  for(let side=0;side<2;side++){
-    for(let layer=0;layer<3;layer++){
-      ribbon(side,layer,t,energy,w,h);
+      /* Leuchtender Kern */
+      ctx.strokeStyle = `rgba(${rgb},0.65)`;
+      ctx.lineWidth = 3;
+      ctx.stroke(path);
     }
   }
 
-  requestAnimationFrame(draw);
+  requestAnimationFrame(drawWaves);
 }
 
-requestAnimationFrame(draw);
+/* Begrenzte Bildrate zur Entlastung */
+let lastFrame = 0;
+
+function animate(ms) {
+  requestAnimationFrame(animate);
+
+  if (ms - lastFrame < 33) return;
+  lastFrame = ms;
+
+  drawFrame(ms);
+}
+
+function drawFrame(ms) {
+  drawWaves(ms);
+}
+
+/* Nur eine Animationsschleife verwenden */
+function drawWaves(ms) {
+  const t = ms * 0.001;
+
+  ctx.clearRect(0, 0, width, height);
+
+  for (let side = 0; side < 2; side++) {
+    const startX = side === 0 ? 0 : width;
+    const direction = side === 0 ? 1 : -1;
+    const reach = width * 0.46;
+
+    for (let layer = 0; layer < 4; layer++) {
+      const rgb = colors[layer];
+      const center = height * (0.34 + layer * 0.105);
+      const amplitude = height * 0.075;
+
+      const path = new Path2D();
+
+      for (let i = 0; i <= 80; i++) {
+        const p = i / 80;
+        const x = startX + direction * p * reach;
+        const envelope = Math.sin(Math.PI * p);
+
+        const motion =
+          Math.sin(
+            p * 11 - t * (1.1 + layer * 0.12)
+            + layer * 1.5
+          );
+
+        const detail =
+          Math.sin(p * 22 + t * 1.6 + layer)
+          * 0.22;
+
+        const y = center +
+          (motion + detail) *
+          amplitude * envelope;
+
+        if (i === 0) path.moveTo(x, y);
+        else path.lineTo(x, y);
+      }
+
+      ctx.strokeStyle = `rgba(${rgb},0.08)`;
+      ctx.lineWidth = 38;
+      ctx.stroke(path);
+
+      ctx.strokeStyle = `rgba(${rgb},0.22)`;
+      ctx.lineWidth = 16;
+      ctx.stroke(path);
+
+      ctx.strokeStyle = `rgba(${rgb},0.65)`;
+      ctx.lineWidth = 3;
+      ctx.stroke(path);
+    }
+  }
+}
+
+requestAnimationFrame(animate);
 </script>
 </body>
 </html>
-
-
-
