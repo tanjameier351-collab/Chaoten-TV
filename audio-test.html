@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHAOTEN-TV | Audiotest</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #080d1b;
+    color: #eaf7ff;
+    font: 16px Arial, sans-serif;
+    display: grid;
+    place-items: center;
+  }
+
+  main {
+    width: min(520px, 90%);
+    text-align: center;
+  }
+
+  h1 { color: #39dfff; }
+
+  #status {
+    margin-top: 24px;
+    padding: 22px;
+    border: 1px solid #32728e;
+    border-radius: 12px;
+    line-height: 1.7;
+  }
+
+  button {
+    padding: 14px 24px;
+    border: 0;
+    border-radius: 8px;
+    background: #23c9ee;
+    color: #06101c;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>CHAOTEN-TV</h1>
+  <p>Audiozugriff testen</p>
+
+  <button id="start">Test starten</button>
+
+  <div id="status">
+    Bereit für den Audiotest.
+  </div>
+</main>
+
+<script>
+const videoUrl =
+  "https://github.com/tanjameier351-collab/" +
+  "Chaoten-TV/releases/download/v1.0/" +
+  "1004.1.mp4";
+
+const status = document.getElementById("status");
+const button = document.getElementById("start");
+
+button.addEventListener("click", async () => {
+  button.disabled = true;
+  status.textContent = "GitHub-Zugriff wird geprüft ...";
+
+  try {
+    const response = await fetch(videoUrl, {
+      mode: "cors",
+      headers: {
+        Range: "bytes=0-1023"
+      }
+    });
+
+    if (response.ok) {
+      status.innerHTML =
+        "✅ Zugriff auf Videodaten erlaubt!" +
+        "<p>HTTP-Status: " + response.status + "</p>" +
+        "<p>Der erste Test ist bestanden. " +
+        "Ob die Audioanalyse funktioniert, " +
+        "prüfen wir als Nächstes.</p>";
+    } else {
+      status.textContent =
+        "⚠️ GitHub antwortet mit HTTP " +
+        response.status;
+    }
+  } catch (error) {
+    status.innerHTML =
+      "❌ Browserzugriff blockiert." +
+      "<p>Die Videodatei kann zwar normal " +
+      "abgespielt werden, aber der direkte " +
+      "Datenzugriff ist nicht freigegeben.</p>" +
+      "<p>Details: " +
+      String(error.message).replace(/[<>&]/g, "") +
+      "</p>";
+  }
+
+  button.disabled = false;
+});
+</script>
+</body>
+</html>
