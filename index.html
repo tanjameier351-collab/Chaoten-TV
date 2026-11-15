@@ -47,6 +47,95 @@ html, body {
   object-fit: contain;
   background: transparent;
 }
+
+/* Equalizer links und rechts */
+.equalizer {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  width: 12%;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 3px;
+  pointer-events: none;
+  opacity: 0.9;
+  z-index: 3;
+}
+
+.equalizer-left {
+  left: 1%;
+}
+
+.equalizer-right {
+  right: 1%;
+}
+
+.bar {
+  width: 7%;
+  height: 15%;
+  border-radius: 4px;
+  background: linear-gradient(
+    to top,
+    #235aff 0%,
+    #8850e9 50%,
+    #e0e6f5 100%
+  );
+  box-shadow:
+    0 0 8px #477aff,
+    0 0 14px #9855f0;
+  transform-origin: center;
+  animation: equalize 1s ease-in-out infinite alternate;
+}
+
+@keyframes equalize {
+  0% {
+    height: 8%;
+    opacity: 0.65;
+  }
+  35% {
+    height: 45%;
+  }
+  70% {
+    height: 22%;
+  }
+  100% {
+    height: 75%;
+    opacity: 1;
+  }
+}
+
+/* Ton einschalten */
+#soundButton {
+  position: absolute;
+  right: 15px;
+  bottom: 15px;
+  z-index: 10;
+  padding: 10px 14px;
+  border: 1px solid #9c8be0;
+  border-radius: 10px;
+  background: rgba(12, 10, 30, 0.8);
+  color: #fff;
+  font: 14px Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(120, 85, 230, 0.5);
+}
+
+#soundButton:hover {
+  background: rgba(60, 40, 110, 0.9);
+}
+
+@media (max-width: 600px) {
+  .equalizer {
+    width: 11%;
+    gap: 2px;
+  }
+
+  #soundButton {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+}
 </style>
 </head>
 
@@ -55,6 +144,13 @@ html, body {
 <div class="screen">
   <video id="background" muted playsinline></video>
   <video id="player" autoplay muted playsinline controls></video>
+
+  <div class="equalizer equalizer-left" id="eq-left"></div>
+  <div class="equalizer equalizer-right" id="eq-right"></div>
+
+  <button id="soundButton" type="button">
+    🔊 Ton einschalten
+  </button>
 </div>
 
 <script>
@@ -126,6 +222,7 @@ const videos = [
 
 const player = document.getElementById("player");
 const background = document.getElementById("background");
+const soundButton = document.getElementById("soundButton");
 
 const sendestart = Date.UTC(2026, 10, 13, 0, 0, 0);
 
@@ -135,6 +232,50 @@ const totalDuration = videos.reduce(
 
 let currentIndex = -1;
 
+/* Equalizer erzeugen */
+function createEqualizer(id) {
+  const container = document.getElementById(id);
+
+  for (let i = 0; i < 14; i++) {
+    const bar = document.createElement("div");
+    bar.className = "bar";
+
+    bar.style.animationDuration =
+      (0.45 + Math.random() * 0.9) + "s";
+
+    bar.style.animationDelay =
+      (-Math.random() * 2) + "s";
+
+    container.appendChild(bar);
+  }
+}
+
+createEqualizer("eq-left");
+createEqualizer("eq-right");
+
+/* Tonsteuerung */
+function updateSoundButton() {
+  soundButton.textContent = player.muted
+    ? "🔊 Ton einschalten"
+    : "🔇 Ton ausschalten";
+}
+
+soundButton.addEventListener("click", async () => {
+  player.muted = !player.muted;
+  player.volume = 1;
+
+  try {
+    await player.play();
+  } catch (error) {
+    console.log("Wiedergabe benötigt Benutzeraktion:", error);
+  }
+
+  updateSoundButton();
+});
+
+player.addEventListener("volumechange", updateSoundButton);
+
+/* Synchronisierte Playlist */
 function getPosition() {
   let elapsed =
     Math.max(0, (Date.now() - sendestart) / 1000)
@@ -205,7 +346,8 @@ background.addEventListener("loadedmetadata", synchronize);
 
 setInterval(synchronize, 3000);
 synchronize();
+updateSoundButton();
 </script>
+
 </body>
 </html>
-
